@@ -189,7 +189,7 @@ const ConversationAgentPage = () => {
 
                                     return (
                                         <Message from={message.role} key={message.id}>
-                                            <div className={`flex flex-col gap-2 w-full max-w-[80%] ${message.role === 'user' && 'items-end'}`}>
+                                            <div className="flex flex-col gap-2 flex-1">
                                                 {/* Render tools */}
                                                 {toolParts.map((part, i) => {
                                                     // Type guard for tool parts
