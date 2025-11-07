@@ -1,4 +1,5 @@
 ---
+name: commit-message
 description: Git変更内容を分析して適切なコミットメッセージを生成します
 ---
 

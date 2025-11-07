@@ -239,37 +239,38 @@ export const listMemoryEventsTool = createTool({
         actorId,
         sessionId,
         includePayloads: context.includePayloads ?? true,
-        maxResults: context.maxResults || 20,
+        maxResults: context.maxResults || 100,
         nextToken: context.nextToken,
       });
 
       const response = await client.send(command);
       const eventList = response.events || [];
 
-      // イベントをフォーマット
-      const events = eventList.map(event => {
-        const formatted: {
-          eventId: string;
-          timestamp: string;
-          role?: string;
-          content?: string;
-        } = {
-          eventId: event.eventId || '',
-          timestamp: event.eventTimestamp?.toISOString() || '',
-        };
+      // イベントをフォーマット（全てのペイロードを処理）
+      const events: Array<{
+        eventId: string;
+        timestamp: string;
+        role?: string;
+        content?: string;
+      }> = [];
 
-        // ペイロードが含まれている場合、最初の会話データを抽出
+      eventList.forEach(event => {
+        const eventId = event.eventId || '';
+        const timestamp = event.eventTimestamp?.toISOString() || '';
+
+        // ペイロードが含まれている場合、全ての会話データを抽出
         if (event.payload && event.payload.length > 0) {
-          const firstPayload = event.payload[0];
-          if (firstPayload.conversational) {
-            formatted.role = firstPayload.conversational.role || '';
-            if (firstPayload.conversational.content?.text) {
-              formatted.content = firstPayload.conversational.content.text;
+          event.payload.slice().reverse().forEach((payload, payloadIndex) => {
+            if (payload.conversational) {
+              events.push({
+                eventId: `${eventId}-${payloadIndex}`, // ユニークなIDを生成
+                timestamp,
+                role: payload.conversational.role || '',
+                content: payload.conversational.content?.text,
+              });
             }
-          }
+          });
         }
-
-        return formatted;
       });
 
       return {

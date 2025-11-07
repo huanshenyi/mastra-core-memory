@@ -18,6 +18,8 @@ import {
 import { MessageSquare, MicIcon, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
+import { getSessionMessages } from '@/app/actions';
+import { convertSessionMessagesToUIMessages } from '@/src/utils/convert-messages';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import {
@@ -72,11 +74,40 @@ const ConversationAgentPage = () => {
 
     // Fetch existing messages when userId or sessionId changes
     useEffect(() => {
-        // Clear messages when session changes
-        // Note: Full message persistence from Mastra memory requires
-        // additional type conversion between Mastra and AI SDK formats
-        setMessages([]);
-        setIsLoadingHistory(false);
+        const fetchHistory = async () => {
+            setIsLoadingHistory(true);
+            setMessages([]);
+
+            try {
+                const result = await getSessionMessages(userId, sessionId);
+                console.log('セッションメッセージ取得結果:', result);
+
+                if (result.success && result.events) {
+                    console.log('取得したイベント数:', result.events.length);
+                    result.events.forEach((event, index) => {
+                        console.log(`イベント ${index + 1}:`, {
+                            eventId: event.eventId,
+                            timestamp: event.timestamp,
+                            role: event.role,
+                            content: event.content,
+                        });
+                    });
+
+                    // SessionMessageをUIMessage形式に変換してUIに表示
+                    const uiMessages = convertSessionMessagesToUIMessages(result.events);
+                    setMessages(uiMessages);
+                    console.log('UIに設定したメッセージ数:', uiMessages.length);
+                } else if (result.error) {
+                    console.error('メッセージ取得エラー:', result.error);
+                }
+            } catch (error) {
+                console.error('メッセージ取得中に例外が発生:', error);
+            } finally {
+                setIsLoadingHistory(false);
+            }
+        };
+
+        fetchHistory();
     }, [userId, sessionId, setMessages]);
 
     const handleSubmit = async (message: PromptInputMessage) => {
